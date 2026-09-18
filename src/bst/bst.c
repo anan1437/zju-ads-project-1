@@ -22,7 +22,7 @@ void *bst_create(void) {                //创建树
 static void recursive_destroy(bst_node* t){    //递归删除树，bst可能会爆栈但我懒得优化。
     if(!t) return ;
     recursive_destroy(t->left);       //递归删除左子
-    recursive_destroy(t->right);      //柚子
+    recursive_destroy(t->right);      //右子
     free(t);                      //释放空间
     return ;
 }
