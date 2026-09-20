@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <stdlib.h>
 typedef int tree_key_t;
 
 typedef struct splay_node{
@@ -11,6 +11,18 @@ typedef struct splay_node{
 typedef struct splay_tree{
     Splay_Node* root;
 } Splay_Tree;
+
+/* ---- 以下为内部辅助函数，不对外暴露，仅在本文件内使用 ----
+ * 前置声明，使定义顺序不受限制（C99 下先用后定义必须声明） */
+Splay_Node* Find (Splay_Node* Node, tree_key_t key);
+Splay_Node* Find_insert (Splay_Node* Node, tree_key_t key);
+Splay_Node* Find_Max (Splay_Node* Node);
+void splay (void *tree, Splay_Node* Node);
+void splay_for_two (Splay_Node* Node);
+void left_roll (Splay_Node* parent, Splay_Node* kid);
+void right_roll (Splay_Node* parent, Splay_Node* kid);
+void Destroy (Splay_Node* Node);
+
 
 void *splay_create(void)
 {
@@ -33,9 +45,9 @@ int   splay_find  (void *tree, tree_key_t key)
 Splay_Node* Find(Splay_Node* Node,tree_key_t key)
 {
     if(Node==NULL) return NULL;
-    if(Node->key==key) return Node;
     if(Node->key<key) return Find(Node->right,key);
     if(Node->key>key) return Find(Node->left,key);
+    return Node;
 }
 
 
@@ -43,7 +55,7 @@ Splay_Node* Find(Splay_Node* Node,tree_key_t key)
 
 int   splay_insert(void *tree, tree_key_t key)
 {
-    if(tree==NULL) return NULL;
+    if(tree==NULL) return -1;
     int Flag=splay_find(tree,key);
     if(Flag==1) return 1;
     Splay_Node* Node=malloc(sizeof(Splay_Node));
@@ -75,50 +87,67 @@ int   splay_insert(void *tree, tree_key_t key)
 
 Splay_Node* Find_insert(Splay_Node* Node,tree_key_t key)
 {
-    if(Node->key<key)
+    if(Node!=NULL)
     {
-        Splay_Node* result=Find(Node->right,key);
-        if (result==NULL) return Node;
-        return result;
+        if(Node->key<key)
+        {
+            Splay_Node* result=Find_insert(Node->right,key);
+            if (result==NULL) return Node;
+            return result;
+        }
+        if(Node->key>key)
+        {
+            Splay_Node* result=Find_insert(Node->left,key);
+            if (result==NULL) return Node;
+            return result;
+        }
     }
-    if(Node->key>key)
-    {
-        Splay_Node* result=Find(Node->left,key);
-        if (result==NULL) return Node;
-        return result;
-    }
+    return NULL;
 }
 
 int   splay_erase (void *tree, tree_key_t key)
 {
-    if(tree==NULL) return NULL;
+    if(tree==NULL) return -1;
     Splay_Tree* t=tree;
     Splay_Node* place_node=Find(t->root,key);
-    if(place_node==NULL) return 0;
+    if(place_node==NULL) return 1;
     splay(tree,place_node);
     Splay_Node* left=place_node->left;
     Splay_Node* right=place_node->right;
     if(left!=NULL) left->parent=NULL;
     if(right!=NULL) right->parent=NULL;
     free(place_node);
-    t->root=left;
-    splay(tree,Find_Max(left));
-    t->root->right=right;
+    if(left!=NULL)
+    {
+        t->root=left;
+        splay(tree,Find_Max(t->root));
+        t->root->right=right;
+        if(right!=NULL)
+            right->parent=t->root;
+    }
+    else if(right!=NULL)
+    {
+        t->root=right;
+        right->parent=NULL;
+    }
+    else
+        t->root=NULL;
     return 0;
 }
 Splay_Node* Find_Max(Splay_Node* Node)
 {
     if(Node->right!=NULL)
         return Find_Max(Node->right);
+    return Node;
 }
 
 
 
 void  splay_destroy(void *tree)
 {
-    if(tree==NULL) return NULL;
+    if(tree==NULL) return;
     Splay_Tree* t=tree;
-    Detroy(t->root);
+    Destroy(t->root);
     free(t);
 }
 void Destroy(Splay_Node *Node)
